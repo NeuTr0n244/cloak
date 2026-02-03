@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLOAK — Invisible Finance</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --cloak-black: #030305;
+  --cloak-dark: #08080f;
+  --cloak-surface: #0d0d18;
+  --cloak-border: rgba(255,255,255,0.04);
+  --cloak-text: #e8e6f0;
+  --cloak-muted: #6b6880;
+  --cloak-accent: #00f0ff;
+  --cloak-accent2: #7b61ff;
+  --cloak-glow: rgba(0, 240, 255, 0.15);
+  --cloak-purple-glow: rgba(123, 97, 255, 0.12);
+  --cloak-danger: #ff3366;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+  --font-body: 'Outfit', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cloak-black);
+  color: var(--cloak-text);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--cloak-black); }
+::-webkit-scrollbar-thumb { background: var(--cloak-accent); border-radius: 2px; }
+
+/* ==================== CANVAS BACKGROUNDS ==================== */
+#particle-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#matrix-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.07;
+}
+
+/* ==================== CURSOR FOLLOWER ==================== */
+.cursor-glow {
+  position: fixed;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--cloak-glow) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.3s;
+  mix-blend-mode: screen;
+}
+
+/* ==================== NAVBAR ==================== */
+.navbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  backdrop-filter: blur(20px);
+  background: rgba(3,3,5,0.6);
+  border-bottom: 1px solid var(--cloak-border);
+  transition: all 0.4s;
+}
+
+.navbar.scrolled {
+  padding: 12px 40px;
+  background: rgba(3,3,5,0.9);
+}
+
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-logo .logo-icon {
+  width: 32px; height: 32px;
+  border: 2px solid var(--cloak-accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  animation: pulse-ring 3s infinite;
+}
+
+.nav-logo .logo-icon::before {
+  content: '◈';
+  font-size: 14px;
+  color: var(--cloak-accent);
+}
+
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0,240,255,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(0,240,255,0); }
+}
+
+.nav-links {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--cloak-muted);
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  transition: color 0.3s;
+  position: relative;
+}
+
+.nav-links a:hover { color: var(--cloak-accent); }
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0;
+  width: 0; height: 1px;
+  background: var(--cloak-accent);
+  transition: width 0.3s;
+}
+
+.nav-links a:hover::after { width: 100%; }
+
+.nav-cta {
+  padding: 10px 24px !important;
+  border: 1px solid var(--cloak-accent) !important;
+  color: var(--cloak-accent) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s !important;
+  text-decoration: none;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+}
+
+.nav-cta:hover {
+  background: var(--cloak-accent) !important;
+  color: var(--cloak-black) !important;
+}
+
+/* ==================== HERO ==================== */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 120px 40px 80px;
+  z-index: 2;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: 1px solid rgba(0,240,255,0.2);
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cloak-accent);
+  margin-bottom: 40px;
+  animation: fadeInDown 1s ease 0.2s both;
+  backdrop-filter: blur(10px);
+  background: rgba(0,240,255,0.03);
+}
+
+.hero-badge .dot {
+  width: 6px; height: 6px;
+  background: var(--cloak-accent);
+  border-radius: 50%;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(3.5rem, 10vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+  margin-bottom: 10px;
+  animation: fadeInUp 1s ease 0.4s both;
+  position: relative;
+}
+
+.hero-title .glitch {
+  position: relative;
+  display: inline-block;
+}
+
+.hero-title .glitch::before,
+.hero-title .glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+}
+
+.hero-title .glitch::before {
+  color: var(--cloak-accent);
+  animation: glitch-1 4s infinite linear alternate-reverse;
+  clip-path: inset(0 0 80% 0);
+}
+
+.hero-title .glitch::after {
+  color: var(--cloak-accent2);
+  animation: glitch-2 4s infinite linear alternate-reverse;
+  clip-path: inset(80% 0 0 0);
+}
+
+@keyframes glitch-1 {
+  0%, 90%, 100% { opacity: 0; transform: none; }
+  92% { opacity: 0.8; transform: translateX(-4px); }
+  94% { opacity: 0; }
+  96% { opacity: 0.6; transform: translateX(3px); }
+  98% { opacity: 0; }
+}
+
+@keyframes glitch-2 {
+  0%, 88%, 100% { opacity: 0; transform: none; }
+  90% { opacity: 0.7; transform: translateX(5px); }
+  92% { opacity: 0; }
+  95% { opacity: 0.5; transform: translateX(-3px); }
+  97% { opacity: 0; }
+}
+
+.hero-title .accent { color: var(--cloak-accent); }
+.hero-title .outline {
+  -webkit-text-stroke: 1.5px var(--cloak-text);
+  color: transparent;
+}
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-weight: 200;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  color: var(--cloak-muted);
+  max-width: 560px;
+  line-height: 1.7;
+  margin: 30px auto 50px;
+  animation: fadeInUp 1s ease 0.6s both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  animation: fadeInUp 1s ease 0.8s both;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-primary {
+  padding: 16px 40px;
+  background: var(--cloak-accent);
+  color: var(--cloak-black);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-primary:hover::before { left: 100%; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 40px var(--cloak-glow); }
+
+.btn-ghost {
+  padding: 16px 40px;
+  background: transparent;
+  color: var(--cloak-text);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  border: 1px solid var(--cloak-border);
+  cursor: pointer;
+  transition: all 0.3s;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-ghost:hover {
+  border-color: var(--cloak-accent);
+  color: var(--cloak-accent);
+}
+
+/* Hero scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  animation: fadeInUp 1s ease 1.2s both;
+}
+
+.scroll-indicator span {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--cloak-muted);
+}
+
+.scroll-line {
+  width: 1px; height: 40px;
+  background: linear-gradient(to bottom, var(--cloak-accent), transparent);
+  animation: scrollPulse 2s infinite;
+}
+
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3; transform: scaleY(0.5); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+/* ==================== STATS TICKER ==================== */
+.ticker-section {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--cloak-border);
+  border-bottom: 1px solid var(--cloak-border);
+  overflow: hidden;
+  background: rgba(8,8,15,0.8);
+  backdrop-filter: blur(20px);
+}
+
+.ticker-track {
+  display: flex;
+  animation: ticker 30s linear infinite;
+  width: max-content;
+}
+
+.ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 48px;
+  white-space: nowrap;
+  border-right: 1px solid var(--cloak-border);
+}
+
+.ticker-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cloak-muted);
+}
+
+.ticker-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--cloak-accent);
+}
+
+.ticker-value.purple { color: var(--cloak-accent2); }
+
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ==================== SECTIONS COMMON ==================== */
+section {
+  position: relative;
+  z-index: 2;
+  padding: 120px 40px;
+}
+
+.section-tag {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--cloak-accent);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-tag::before {
+  content: '';
+  width: 20px; height: 1px;
+  background: var(--cloak-accent);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 24px;
+}
+
+.section-desc {
+  font-weight: 200;
+  font-size: 1.05rem;
+  color: var(--cloak-muted);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+/* ==================== ABOUT / HOW IT WORKS ==================== */
+.about-section {
+  background: var(--cloak-dark);
+}
+
+.about-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.about-visual {
+  position: relative;
+  height: 500px;
+  border: 1px solid var(--cloak-border);
+  overflow: hidden;
+  clip-path: polygon(0 0, calc(100% - 30px) 0, 100% 30px, 100% 100%, 30px 100%, 0 calc(100% - 30px));
+}
+
+.about-visual canvas {
+  width: 100%; height: 100%;
+}
+
+.about-visual .overlay-text {
+  position: absolute;
+  bottom: 20px; left: 20px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--cloak-accent);
+  letter-spacing: 0.15em;
+  opacity: 0.6;
+}
+
+/* ==================== FEATURES ==================== */
+.features-section {
+  background: var(--cloak-black);
+}
+
+.features-grid {
+  max-width: 1200px;
+  margin: 60px auto 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.feature-card {
+  background: var(--cloak-surface);
+  padding: 48px 36px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.5s;
+  border: 1px solid var(--cloak-border);
+}
+
+.feature-card:hover {
+  background: rgba(0,240,255,0.02);
+  border-color: rgba(0,240,255,0.1);
+  transform: translateY(-4px);
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--cloak-accent), transparent);
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.feature-card:hover::before { opacity: 1; }
+
+.feature-number {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--cloak-accent);
+  letter-spacing: 0.2em;
+  margin-bottom: 24px;
+  opacity: 0.5;
+}
+
+.feature-icon {
+  width: 48px; height: 48px;
+  border: 1px solid rgba(0,240,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+  font-size: 1.2rem;
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
+  background: rgba(0,240,255,0.03);
+}
+
+.feature-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+}
+
+.feature-desc {
+  font-weight: 300;
+  font-size: 0.88rem;
+  color: var(--cloak-muted);
+  line-height: 1.7;
+}
+
+/* ==================== ARCHITECTURE SECTION ==================== */
+.arch-section {
+  background: var(--cloak-dark);
+  overflow: hidden;
+}
+
+.arch-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.arch-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.arch-header .section-desc {
+  margin: 0 auto;
+}
+
+.arch-diagram {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  padding: 40px 0;
+}
+
+.arch-node {
+  background: var(--cloak-surface);
+  border: 1px solid var(--cloak-border);
+  padding: 32px 28px;
+  text-align: center;
+  min-width: 180px;
+  position: relative;
+  transition: all 0.4s;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.arch-node:hover {
+  border-color: var(--cloak-accent);
+  box-shadow: 0 0 40px var(--cloak-glow);
+  transform: scale(1.05);
+}
+
+.arch-node-icon {
+  font-size: 1.8rem;
+  margin-bottom: 12px;
+}
+
+.arch-node-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.arch-node-sub {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--cloak-muted);
+  letter-spacing: 0.1em;
+}
+
+.arch-connector {
+  width: 60px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, var(--cloak-accent) 0, var(--cloak-accent) 6px, transparent 6px, transparent 12px);
+  position: relative;
+  opacity: 0.4;
+}
+
+.arch-connector::after {
+  content: '▸';
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--cloak-accent);
+  font-size: 0.7rem;
+}
+
+/* ==================== TOKENOMICS ==================== */
+.token-section {
+  background: var(--cloak-black);
+}
+
+.token-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.token-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.token-header .section-desc { margin: 0 auto; }
+
+.token-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+}
+
+.token-chart {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+.chart-ring {
+  position: relative;
+  width: 280px; height: 280px;
+}
+
+.chart-ring svg {
+  width: 100%; height: 100%;
+  transform: rotate(-90deg);
+}
+
+.chart-ring circle {
+  fill: none;
+  stroke-width: 24;
+  stroke-linecap: butt;
+}
+
+.chart-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.chart-center .big {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 2rem;
+  color: var(--cloak-accent);
+}
+
+.chart-center .small {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--cloak-muted);
+  letter-spacing: 0.15em;
+}
+
+.token-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.token-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--cloak-surface);
+  border: 1px solid var(--cloak-border);
+  transition: all 0.3s;
+}
+
+.token-row:hover {
+  border-color: rgba(0,240,255,0.15);
+  background: rgba(0,240,255,0.02);
+}
+
+.token-row-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.token-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+
+.token-row-label {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.token-row-value {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--cloak-accent);
+}
+
+/* ==================== ROADMAP ==================== */
+.roadmap-section {
+  background: var(--cloak-dark);
+}
+
+.roadmap-container {
+  max-width: 1000px;
+  margin: 60px auto 0;
+}
+
+.roadmap-line {
+  position: relative;
+  padding-left: 60px;
+}
+
+.roadmap-line::before {
+  content: '';
+  position: absolute;
+  left: 20px; top: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(to bottom, var(--cloak-accent), var(--cloak-accent2), transparent);
+}
+
+.roadmap-item {
+  position: relative;
+  margin-bottom: 48px;
+  padding: 28px 32px;
+  background: var(--cloak-surface);
+  border: 1px solid var(--cloak-border);
+  transition: all 0.4s;
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
+}
+
+.roadmap-item:hover {
+  border-color: rgba(0,240,255,0.15);
+  transform: translateX(8px);
+}
+
+.roadmap-item::before {
+  content: '';
+  position: absolute;
+  left: -49px; top: 32px;
+  width: 10px; height: 10px;
+  background: var(--cloak-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 16px var(--cloak-accent);
+}
+
+.roadmap-item.future::before {
+  background: var(--cloak-accent2);
+  box-shadow: 0 0 16px var(--cloak-accent2);
+}
+
+.roadmap-phase {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cloak-accent);
+  margin-bottom: 8px;
+}
+
+.roadmap-item.future .roadmap-phase { color: var(--cloak-accent2); }
+
+.roadmap-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+}
+
+.roadmap-desc {
+  font-weight: 300;
+  font-size: 0.85rem;
+  color: var(--cloak-muted);
+  line-height: 1.6;
+}
+
+.roadmap-tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.roadmap-tag {
+  padding: 4px 10px;
+  border: 1px solid var(--cloak-border);
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: var(--cloak-muted);
+}
+
+/* ==================== COMMUNITY / CTA ==================== */
+.cta-section {
+  background: var(--cloak-black);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-section::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, var(--cloak-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-section::after {
+  content: '';
+  position: absolute;
+  top: 40%; left: 30%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, var(--cloak-purple-glow) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-container {
+  position: relative;
+  z-index: 2;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.cta-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1;
+  margin-bottom: 24px;
+}
+
+.cta-desc {
+  font-weight: 200;
+  font-size: 1.1rem;
+  color: var(--cloak-muted);
+  line-height: 1.7;
+  margin-bottom: 48px;
+}
+
+.cta-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.social-links {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 48px;
+}
+
+.social-link {
+  width: 48px; height: 48px;
+  border: 1px solid var(--cloak-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cloak-muted);
+  text-decoration: none;
+  font-size: 1rem;
+  transition: all 0.3s;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+.social-link:hover {
+  border-color: var(--cloak-accent);
+  color: var(--cloak-accent);
+  background: rgba(0,240,255,0.05);
+}
+
+/* ==================== FOOTER ==================== */
+.footer {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--cloak-border);
+  padding: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--cloak-black);
+}
+
+.footer-left {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--cloak-muted);
+  letter-spacing: 0.1em;
+}
+
+.footer-right {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--cloak-muted);
+  letter-spacing: 0.1em;
+}
+
+/* ==================== REVEAL ANIMATIONS ==================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==================== SCAN LINES OVERLAY ==================== */
+.scanlines {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 999;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.03) 0px,
+    rgba(0,0,0,0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.4;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 900px) {
+  .about-grid { grid-template-columns: 1fr; }
+  .about-visual { height: 300px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .token-grid { grid-template-columns: 1fr; }
+  .arch-diagram { flex-direction: column; gap: 16px; }
+  .arch-connector { width: 2px; height: 30px; background: repeating-linear-gradient(180deg, var(--cloak-accent) 0, var(--cloak-accent) 6px, transparent 6px, transparent 12px); }
+  .arch-connector::after { content: '▾'; right: auto; top: auto; bottom: -8px; left: 50%; transform: translateX(-50%); }
+  .nav-links { display: none; }
+  .navbar { padding: 16px 24px; }
+  section { padding: 80px 24px; }
+  .footer { flex-direction: column; gap: 16px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="scanlines"></div>
+<canvas id="particle-canvas"></canvas>
+<canvas id="matrix-canvas"></canvas>
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-logo">
+    <div class="logo-icon"></div>
+    CLOAK
+  </div>
+  <ul class="nav-links">
+    <li><a href="#about">Protocol</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#tokenomics">Tokenomics</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="https://raydium.io/" target="_blank" class="nav-cta">Enter the Void</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    Stealth Protocol Live on Solana
+  </div>
+  <h1 class="hero-title">
+    <span class="glitch" data-text="CLOAK">CLOAK</span><br>
+    <span class="outline">Invisible</span> <span class="accent">Finance</span>
+  </h1>
+  <p class="hero-subtitle">
+    The privacy layer for autonomous agents and humans. 
+    Obscure every transaction. Erase every trace. 
+    Your wallet, your rules — zero footprint on-chain.
+  </p>
+  <div class="hero-actions">
+    <a href="https://raydium.io/" target="_blank" class="btn-primary">Launch App</a>
+    <a href="#" target="_blank" class="btn-ghost">Read Whitepaper</a>
+  </div>
+  <div class="scroll-indicator">
+    <span>Scroll to explore</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-section">
+  <div class="ticker-track" id="ticker">
+    <div class="ticker-item">
+      <span class="ticker-label">Market Cap</span>
+      <span class="ticker-value">$4.2M</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">24h Volume</span>
+      <span class="ticker-value purple">$890K</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Holders</span>
+      <span class="ticker-value">12,847</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">TX Cloaked</span>
+      <span class="ticker-value purple">1.2M+</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Agents Connected</span>
+      <span class="ticker-value">3,491</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Protocol</span>
+      <span class="ticker-value">Solana</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Privacy Score</span>
+      <span class="ticker-value purple">99.7%</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Status</span>
+      <span class="ticker-value">◉ LIVE</span>
+    </div>
+    <!-- Duplicate for seamless loop -->
+    <div class="ticker-item">
+      <span class="ticker-label">Market Cap</span>
+      <span class="ticker-value">$4.2M</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">24h Volume</span>
+      <span class="ticker-value purple">$890K</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Holders</span>
+      <span class="ticker-value">12,847</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">TX Cloaked</span>
+      <span class="ticker-value purple">1.2M+</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Agents Connected</span>
+      <span class="ticker-value">3,491</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Protocol</span>
+      <span class="ticker-value">Solana</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Privacy Score</span>
+      <span class="ticker-value purple">99.7%</span>
+    </div>
+    <div class="ticker-item">
+      <span class="ticker-label">Status</span>
+      <span class="ticker-value">◉ LIVE</span>
+    </div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section class="about-section" id="about">
+  <div class="about-grid">
+    <div class="about-content reveal">
+      <div class="section-tag">The Protocol</div>
+      <h2 class="section-title">Finance Should<br>Be <span style="color:var(--cloak-accent)">Invisible</span></h2>
+      <p class="section-desc" style="margin-bottom:24px;">
+        Cloak is a zero-knowledge privacy layer built for the next era of finance — where autonomous AI agents transact 24/7, and humans demand absolute sovereignty over their financial data.
+      </p>
+      <p class="section-desc">
+        Every transaction routed through Cloak is shielded using advanced cryptographic proofs. No metadata leaks. No wallet clustering. No trace left behind. Whether you're an agent paying for API calls or a human moving assets — you're invisible.
+      </p>
+    </div>
+    <div class="about-visual reveal">
+      <canvas id="networkCanvas"></canvas>
+      <div class="overlay-text">// NETWORK VISUALIZATION — LIVE TOPOLOGY</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div style="max-width:1200px; margin:0 auto; text-align:center;">
+    <div class="section-tag reveal" style="justify-content:center;">Core Features</div>
+    <h2 class="section-title reveal">Built for the <span style="color:var(--cloak-accent)">Shadows</span></h2>
+    <p class="section-desc reveal" style="margin:0 auto;">
+      Every component engineered for one purpose: making your financial activity completely unobservable.
+    </p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-number">01</div>
+      <div class="feature-icon">🛡</div>
+      <h3 class="feature-name">ZK-Shielded Transfers</h3>
+      <p class="feature-desc">Every transfer generates a zero-knowledge proof that validates the transaction without revealing sender, receiver, or amount. Complete mathematical privacy.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-number">02</div>
+      <div class="feature-icon">🤖</div>
+      <h3 class="feature-name">Agent-Native SDK</h3>
+      <p class="feature-desc">Purpose-built SDK for AI agents. Your OpenClaw, AutoGPT, or custom agents can transact privately through a simple API — no wallet exposure, no identity leaks.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-number">03</div>
+      <div class="feature-icon">🌀</div>
+      <h3 class="feature-name">Stealth Addresses</h3>
+      <p class="feature-desc">One-time stealth addresses generated per transaction. Even if someone knows your public key, they can't link any on-chain activity back to you.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-number">04</div>
+      <div class="feature-icon">⚡</div>
+      <h3 class="feature-name">Sub-Second Privacy</h3>
+      <p class="feature-desc">Built on Solana for blazing speed. Privacy doesn't mean slow — Cloak transactions finalize in under 400ms with full cryptographic guarantees.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-number">05</div>
+      <div class="feature-icon">🔗</div>
+      <h3 class="feature-name">Cross-Chain Cloaking</h3>
+      <p class="feature-desc">Bridge assets from Ethereum, Base, or Arbitrum through the Cloak relay. Assets enter visible, exit invisible. Seamless multi-chain privacy.</p>
+    </div>
+    <div class="feature-card reveal">
+      <div class="feature-number">06</div>
+      <div class="feature-icon">📡</div>
+      <h3 class="feature-name">Metadata Erasure</h3>
+      <p class="feature-desc">Beyond amount and address — Cloak strips timing patterns, gas signatures, and interaction graphs. No data point survives the cloaking process.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="arch-section" id="architecture">
+  <div class="arch-container">
+    <div class="arch-header reveal">
+      <div class="section-tag" style="justify-content:center;">Architecture</div>
+      <h2 class="section-title" style="text-align:center;">How <span style="color:var(--cloak-accent)">Cloaking</span> Works</h2>
+      <p class="section-desc" style="text-align:center;">
+        A four-stage pipeline that transforms visible transactions into untraceable private transfers.
+      </p>
+    </div>
+    <div class="arch-diagram reveal">
+      <div class="arch-node">
+        <div class="arch-node-icon">📥</div>
+        <div class="arch-node-title">Deposit</div>
+        <div class="arch-node-sub">Assets enter the pool</div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-node-icon">🔐</div>
+        <div class="arch-node-title">ZK Proof</div>
+        <div class="arch-node-sub">Generate commitment</div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-node-icon">🌀</div>
+        <div class="arch-node-title">Mix Pool</div>
+        <div class="arch-node-sub">Break linkability</div>
+      </div>
+      <div class="arch-connector"></div>
+      <div class="arch-node">
+        <div class="arch-node-icon">👻</div>
+        <div class="arch-node-title">Stealth Out</div>
+        <div class="arch-node-sub">Invisible withdrawal</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENOMICS -->
+<section class="token-section" id="tokenomics">
+  <div class="token-container">
+    <div class="token-header reveal">
+      <div class="section-tag" style="justify-content:center;">Tokenomics</div>
+      <h2 class="section-title" style="text-align:center;"><span style="color:var(--cloak-accent)">$CLOAK</span> Distribution</h2>
+      <p class="section-desc" style="text-align:center;">
+        Total supply: 1,000,000,000 $CLOAK — designed for sustainability, community-first.
+      </p>
+    </div>
+    <div class="token-grid reveal">
+      <div class="token-chart">
+        <div class="chart-ring">
+          <svg viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" stroke="rgba(255,255,255,0.03)" />
+            <circle cx="100" cy="100" r="80" stroke="#00f0ff" stroke-dasharray="150.8 502.65" stroke-dashoffset="0" />
+            <circle cx="100" cy="100" r="80" stroke="#7b61ff" stroke-dasharray="100.53 502.65" stroke-dashoffset="-150.8" />
+            <circle cx="100" cy="100" r="80" stroke="#ff3366" stroke-dasharray="75.4 502.65" stroke-dashoffset="-251.33" />
+            <circle cx="100" cy="100" r="80" stroke="#00ff88" stroke-dasharray="50.27 502.65" stroke-dashoffset="-326.73" />
+            <circle cx="100" cy="100" r="80" stroke="#ffaa00" stroke-dasharray="50.27 502.65" stroke-dashoffset="-377" />
+            <circle cx="100" cy="100" r="80" stroke="#666" stroke-dasharray="75.4 502.65" stroke-dashoffset="-427.27" />
+          </svg>
+          <div class="chart-center">
+            <div class="big">1B</div>
+            <div class="small">TOTAL SUPPLY</div>
+          </div>
+        </div>
+      </div>
+      <div class="token-details">
+        <div class="token-row">
+          <div class="token-row-left">
+            <div class="token-dot" style="background:#00f0ff;"></div>
+            <span class="token-row-label">Community & Airdrop</span>
+          </div>
+          <span class="token-row-value">30%</span>
+        </div>
+        <div class="token-row">
+          <div class="token-row-left">
+            <div class="token-dot" style="background:#7b61ff;"></div>
+            <span class="token-row-label">Liquidity Pool</span>
+          </div>
+          <span class="token-row-value">20%</span>
+        </div>
+        <div class="token-row">
+          <div class="token-row-left">
+            <div class="token-dot" style="background:#ff3366;"></div>
+            <span class="token-row-label">Development & Team</span>
+          </div>
+          <span class="token-row-value">15%</span>
+        </div>
+        <div class="token-row">
+          <div class="token-row-left">
+            <div class="token-dot" style="background:#00ff88;"></div>
+            <span class="token-row-label">Privacy Mining Rewards</span>
+          </div>
+          <span class="token-row-value">10%</span>
+        </div>
+        <div class="token-row">
+          <div class="token-row-left">
+            <div class="token-dot" style="background:#ffaa00;"></div>
+            <span class="token-row-label">Strategic Partners</span>
+          </div>
+          <span class="token-row-value">10%</span>
+        </div>
+        <div class="token-row">
+          <div class="token-row-left">
+            <div class="token-dot" style="background:#666;"></div>
+            <span class="token-row-label">Treasury & Reserve</span>
+          </div>
+          <span class="token-row-value">15%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="roadmap-section" id="roadmap">
+  <div style="max-width:1000px; margin:0 auto;">
+    <div class="section-tag reveal">Roadmap</div>
+    <h2 class="section-title reveal">The Path to <span style="color:var(--cloak-accent)">Total Privacy</span></h2>
+  </div>
+  <div class="roadmap-container">
+    <div class="roadmap-line">
+      <div class="roadmap-item reveal">
+        <div class="roadmap-phase">Phase 01 — Foundation</div>
+        <h3 class="roadmap-title">Protocol Genesis</h3>
+        <p class="roadmap-desc">Token launch on Solana. Core privacy pool deployed. Agent SDK alpha release. Community formation and initial DEX listing.</p>
+        <div class="roadmap-tags">
+          <span class="roadmap-tag">Token Launch</span>
+          <span class="roadmap-tag">Smart Contracts</span>
+          <span class="roadmap-tag">SDK Alpha</span>
+        </div>
+      </div>
+      <div class="roadmap-item reveal">
+        <div class="roadmap-phase">Phase 02 — Expansion</div>
+        <h3 class="roadmap-title">Agent Integration Wave</h3>
+        <p class="roadmap-desc">OpenClaw skill plugin release. Native integrations with major agent frameworks. Stealth address system v2. CEX listings and partnerships.</p>
+        <div class="roadmap-tags">
+          <span class="roadmap-tag">OpenClaw Plugin</span>
+          <span class="roadmap-tag">Stealth v2</span>
+          <span class="roadmap-tag">CEX Listings</span>
+        </div>
+      </div>
+      <div class="roadmap-item future reveal">
+        <div class="roadmap-phase">Phase 03 — Convergence</div>
+        <h3 class="roadmap-title">Cross-Chain Privacy</h3>
+        <p class="roadmap-desc">Ethereum and Base bridge deployment. Cross-chain cloaking relay. Privacy mining program launch. Mobile wallet beta.</p>
+        <div class="roadmap-tags">
+          <span class="roadmap-tag">ETH Bridge</span>
+          <span class="roadmap-tag">Privacy Mining</span>
+          <span class="roadmap-tag">Mobile Wallet</span>
+        </div>
+      </div>
+      <div class="roadmap-item future reveal">
+        <div class="roadmap-phase">Phase 04 — Singularity</div>
+        <h3 class="roadmap-title">Autonomous Privacy Network</h3>
+        <p class="roadmap-desc">Fully decentralized governance. Agent-to-agent private economy. Enterprise privacy API. The invisible financial layer becomes the default.</p>
+        <div class="roadmap-tags">
+          <span class="roadmap-tag">DAO Launch</span>
+          <span class="roadmap-tag">Enterprise API</span>
+          <span class="roadmap-tag">Full Decentralization</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="community">
+  <div class="cta-container reveal">
+    <div class="section-tag" style="justify-content:center;">Join the Movement</div>
+    <h2 class="cta-title">Disappear<br><span style="color:var(--cloak-accent)">With Us</span></h2>
+    <p class="cta-desc">
+      The age of transparent wallets is over. Join 12,000+ agents and humans 
+      who've already gone invisible. Enter the Cloak.
+    </p>
+    <div class="cta-actions">
+      <a href="https://raydium.io/" target="_blank" class="btn-primary">Buy $CLOAK</a>
+    </div>
+    <div class="social-links">
+      <a href="https://x.com/" target="_blank" class="social-link" title="Twitter/X">𝕏</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-left">© 2026 CLOAK PROTOCOL — ALL RIGHTS RESERVED</div>
+  <div class="footer-right">BUILT IN THE SHADOWS</div>
+</footer>
+
+<script>
+// ==================== PARTICLE CANVAS ====================
+const particleCanvas = document.getElementById('particle-canvas');
+const pCtx = particleCanvas.getContext('2d');
+let particles = [];
+
+function resizeParticleCanvas() {
+  particleCanvas.width = window.innerWidth;
+  particleCanvas.height = window.innerHeight;
+}
+resizeParticleCanvas();
+window.addEventListener('resize', resizeParticleCanvas);
+
+class Particle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * particleCanvas.width;
+    this.y = Math.random() * particleCanvas.height;
+    this.size = Math.random() * 1.5 + 0.3;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = Math.random() * 0.4 + 0.1;
+    this.color = Math.random() > 0.7 ? '#00f0ff' : '#7b61ff';
+  }
+  update() {
+    this.x += this.speedX;
+    this.y += this.speedY;
+    if (this.x < 0 || this.x > particleCanvas.width || this.y < 0 || this.y > particleCanvas.height) {
+      this.reset();
+    }
+  }
+  draw() {
+    pCtx.beginPath();
+    pCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    pCtx.fillStyle = this.color;
+    pCtx.globalAlpha = this.opacity;
+    pCtx.fill();
+    pCtx.globalAlpha = 1;
+  }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function drawConnections() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        pCtx.beginPath();
+        pCtx.moveTo(particles[i].x, particles[i].y);
+        pCtx.lineTo(particles[j].x, particles[j].y);
+        pCtx.strokeStyle = `rgba(0, 240, 255, ${0.06 * (1 - dist / 120)})`;
+        pCtx.lineWidth = 0.5;
+        pCtx.stroke();
+      }
+    }
+  }
+}
+
+function animateParticles() {
+  pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+  particles.forEach(p => { p.update(); p.draw(); });
+  drawConnections();
+  requestAnimationFrame(animateParticles);
+}
+animateParticles();
+
+// ==================== MATRIX RAIN ====================
+const matrixCanvas = document.getElementById('matrix-canvas');
+const mCtx = matrixCanvas.getContext('2d');
+
+function resizeMatrixCanvas() {
+  matrixCanvas.width = window.innerWidth;
+  matrixCanvas.height = window.innerHeight;
+}
+resizeMatrixCanvas();
+window.addEventListener('resize', resizeMatrixCanvas);
+
+const chars = '01アイウエオカキクケコ◈◆◇▸▾●○□■';
+const fontSize = 11;
+const columns = Math.floor(matrixCanvas.width / fontSize);
+const drops = Array(columns).fill(1);
+
+function drawMatrix() {
+  mCtx.fillStyle = 'rgba(3,3,5,0.08)';
+  mCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+  mCtx.fillStyle = '#00f0ff';
+  mCtx.font = fontSize + 'px monospace';
+  for (let i = 0; i < drops.length; i++) {
+    const text = chars[Math.floor(Math.random() * chars.length)];
+    mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+    if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+      drops[i] = 0;
+    }
+    drops[i]++;
+  }
+}
+setInterval(drawMatrix, 60);
+
+// ==================== NETWORK CANVAS ====================
+const networkCanvas = document.getElementById('networkCanvas');
+if (networkCanvas) {
+  const nCtx = networkCanvas.getContext('2d');
+  
+  function resizeNetwork() {
+    networkCanvas.width = networkCanvas.parentElement.clientWidth;
+    networkCanvas.height = networkCanvas.parentElement.clientHeight;
+  }
+  resizeNetwork();
+  window.addEventListener('resize', resizeNetwork);
+
+  const nodes = [];
+  for (let i = 0; i < 30; i++) {
+    nodes.push({
+      x: Math.random() * 400 + 50,
+      y: Math.random() * 400 + 50,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: (Math.random() - 0.5) * 0.5,
+      r: Math.random() * 3 + 1,
+      pulse: Math.random() * Math.PI * 2
+    });
+  }
+
+  function animateNetwork() {
+    nCtx.clearRect(0, 0, networkCanvas.width, networkCanvas.height);
+    
+    // Connections
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 150) {
+          nCtx.beginPath();
+          nCtx.moveTo(nodes[i].x, nodes[i].y);
+          nCtx.lineTo(nodes[j].x, nodes[j].y);
+          const alpha = 0.15 * (1 - dist / 150);
+          nCtx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+          nCtx.lineWidth = 0.8;
+          nCtx.stroke();
+        }
+      }
+    }
+
+    // Nodes
+    nodes.forEach(n => {
+      n.x += n.vx;
+      n.y += n.vy;
+      n.pulse += 0.02;
+      if (n.x < 10 || n.x > networkCanvas.width - 10) n.vx *= -1;
+      if (n.y < 10 || n.y > networkCanvas.height - 10) n.vy *= -1;
+
+      const glow = Math.sin(n.pulse) * 0.3 + 0.7;
+      nCtx.beginPath();
+      nCtx.arc(n.x, n.y, n.r + 4, 0, Math.PI * 2);
+      nCtx.fillStyle = `rgba(0, 240, 255, ${0.08 * glow})`;
+      nCtx.fill();
+      
+      nCtx.beginPath();
+      nCtx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+      nCtx.fillStyle = `rgba(0, 240, 255, ${0.7 * glow})`;
+      nCtx.fill();
+    });
+
+    requestAnimationFrame(animateNetwork);
+  }
+  animateNetwork();
+}
+
+// ==================== CURSOR GLOW ====================
+const cursorGlow = document.getElementById('cursorGlow');
+let mouseX = 0, mouseY = 0;
+document.addEventListener('mousemove', e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+function updateCursor() {
+  cursorGlow.style.left = mouseX + 'px';
+  cursorGlow.style.top = mouseY + 'px';
+  requestAnimationFrame(updateCursor);
+}
+updateCursor();
+
+// ==================== NAVBAR SCROLL ====================
+window.addEventListener('scroll', () => {
+  document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// ==================== REVEAL ON SCROLL ====================
+const revealElements = document.querySelectorAll('.reveal');
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+revealElements.forEach(el => revealObserver.observe(el));
+
+// ==================== TYPED EFFECT FOR HERO BADGE ====================
+const badge = document.querySelector('.hero-badge');
+if (badge) {
+  const originalText = badge.textContent.trim();
+  // Already set — just add a subtle scramble on hover
+  badge.addEventListener('mouseenter', () => {
+    let iterations = 0;
+    const interval = setInterval(() => {
+      badge.childNodes[1].textContent = originalText.split('').map((char, i) => {
+        if (i < iterations) return originalText[i];
+        return chars[Math.floor(Math.random() * chars.length)];
+      }).join('');
+      if (iterations >= originalText.length) clearInterval(interval);
+      iterations += 2;
+    }, 30);
+  });
+}
+</script>
+</body>
+</html>
